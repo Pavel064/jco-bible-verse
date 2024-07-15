@@ -1,28 +1,32 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
+import { Tabs, Tab } from "@nextui-org/react";
 
 const VerseDisplay = () => {
-  const [verse, setVerse] = useState("Loading...");
+  const [verses, setVerses] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchVerse = async () => {
+    const fetchVerses = async () => {
       const { data, error } = await supabase
         .from("verses")
-        .select("verse")
+        .select(
+          "verse_en, reference_en, verse_ru, reference_ru, verse_ka, reference_ka"
+        )
         .order("created_at", { ascending: false })
         .limit(1);
 
       if (error) {
-        console.log("Error fetching verse:", error);
-        setVerse("Error fetching verse");
+        console.log("Error fetching verses:", error);
+        setError("Error fetching verses");
       } else if (data.length > 0) {
-        setVerse(data[0].verse);
+        setVerses(data[0]);
       } else {
-        setVerse("No verse available");
+        setError("No verses available");
       }
     };
 
-    fetchVerse();
+    fetchVerses();
 
     const channel = supabase.channel("verses_changes");
 
@@ -31,7 +35,7 @@ const VerseDisplay = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "verses" },
         (payload) => {
-          setVerse(payload.new.verse);
+          setVerses(payload.new);
         }
       )
       .subscribe();
@@ -41,7 +45,48 @@ const VerseDisplay = () => {
     };
   }, []);
 
-  return <div className="text-wrap">{verse}</div>;
+  return (
+    <>
+      {error ? (
+        <p>{error}</p>
+      ) : (
+        <Tabs
+          placement="bottom"
+          radius="lg"
+          defaultSelectedKey="2"
+          variant="light"
+          classNames={{
+            base: "self-center mt-10",
+            tabList: "w-96",
+            panel: "text-center text-wrap min-h-52",
+            tab: "py-5",
+            tabContent:
+              "text-indigo-200 group-data-[selected=true]:text-indigo-100",
+            cursor: "bg-gradient-to-tr from-pink-500 to-yellow-500 shadow-lg",
+          }}
+        >
+          <Tab title="ქართული" key="1">
+            <div>
+              <p className="mb-2">{verses.verse_ka}</p>
+              <p className="text-sm opacity-70">{verses.reference_ka}</p>
+            </div>
+          </Tab>
+          <Tab title="English" key="2">
+            <div>
+              <p className="mb-2">{verses.verse_en}</p>
+              <p className="text-sm opacity-70">{verses.reference_en}</p>
+            </div>
+          </Tab>
+          <Tab title="Русский" key="3">
+            <div>
+              <p className="mb-2">{verses.verse_ru}</p>
+              <p className="text-sm opacity-70">{verses.reference_ru}</p>
+            </div>
+          </Tab>
+        </Tabs>
+      )}
+    </>
+  );
 };
 
 export default VerseDisplay;

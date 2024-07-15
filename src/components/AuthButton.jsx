@@ -6,6 +6,8 @@ import {
   ModalBody,
   Button,
   Modal,
+  Tabs,
+  Tab,
   Input,
   Textarea,
   ModalFooter,
@@ -29,6 +31,15 @@ const AuthButton = () => {
     onOpenChange: onEditVerseOpenChange,
   } = useDisclosure();
 
+  const [verses, setVerses] = useState({
+    verse_en: "",
+    reference_en: "",
+    verse_ru: "",
+    reference_ru: "",
+    verse_ka: "",
+    reference_ka: "",
+  });
+
   useEffect(() => {
     const session = supabase.auth.getSession();
     setUser(session?.user ?? null);
@@ -50,11 +61,22 @@ const AuthButton = () => {
       return;
     }
 
-    const { error } = await supabase
-      .from("verses")
-      .upsert({ verse, date: new Date().toISOString().split("T")[0] });
+    const { error } = await supabase.from("verses").insert({
+      ...verses,
+      date: new Date().toISOString().split("T")[0],
+    });
 
     if (error) console.log("Error updating verse:", error);
+    else {
+      setVerses({
+        verse_en: "",
+        reference_en: "",
+        verse_ru: "",
+        reference_ru: "",
+        verse_ka: "",
+        reference_ka: "",
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -75,13 +97,20 @@ const AuthButton = () => {
     }
   };
 
+  const handleVerseChange = (lang, field, value) => {
+    setVerses((prev) => ({
+      ...prev,
+      [`${field}_${lang}`]: value,
+    }));
+  };
+
   return user ? (
-    <div className="text-center mt-20 text-indigo-300">
+    <div className="text-center text-indigo-300">
       <p>Logged in as {user.email}</p>
       <div className="flex gap-3 mt-5">
         <Button
           onClick={onEditVerseOpen}
-          className=" bg-gradient-to-tr from-pink-500 to-yellow-500 text-indigo-100 shadow-lg"
+          className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-indigo-100 shadow-lg"
         >
           Add new Verse
         </Button>
@@ -112,11 +141,67 @@ const AuthButton = () => {
               </ModalHeader>
               <ModalBody>
                 {user && user.email === ADMIN_EMAIL ? (
-                  <Textarea
-                    value={verse}
-                    onChange={(e) => setVerse(e.target.value)}
-                    minRows={8}
-                  />
+                  <Tabs
+                    classNames={{
+                      base: "w-full",
+                      tabList: "w-full",
+                    }}
+                  >
+                    <Tab key="english" title="English">
+                      <Textarea
+                        label="Verse (English)"
+                        value={verses.verse_en}
+                        onChange={(e) =>
+                          handleVerseChange("en", "verse", e.target.value)
+                        }
+                        minRows={8}
+                        className="mb-4"
+                      />
+                      <Input
+                        label="Reference (English)"
+                        value={verses.reference_en}
+                        onChange={(e) =>
+                          handleVerseChange("en", "reference", e.target.value)
+                        }
+                      />
+                    </Tab>
+                    <Tab key="russian" title="Русский">
+                      <Textarea
+                        label="Стих (Русский)"
+                        value={verses.verse_ru}
+                        onChange={(e) =>
+                          handleVerseChange("ru", "verse", e.target.value)
+                        }
+                        minRows={8}
+                        className="mb-4"
+                      />
+                      <Input
+                        label="Ссылка (Русский)"
+                        value={verses.reference_ru}
+                        onChange={(e) =>
+                          handleVerseChange("ru", "reference", e.target.value)
+                        }
+                      />
+                    </Tab>
+                    <Tab key="georgian" title="ქართული">
+                      <Textarea
+                        label="ლექსი (ქართული)"
+                        value={verses.verse_ka}
+                        onChange={(e) =>
+                          handleVerseChange("ka", "verse", e.target.value)
+                        }
+                        minRows={8}
+                        className="mb-4"
+                      />
+                      <Input
+                        label="მითითება (ქართული)"
+                        value={verses.reference_ka}
+                        onChange={(e) =>
+                          handleVerseChange("ka", "reference", e.target.value)
+                        }
+                      />
+                    </Tab>
+                  </Tabs>
                 ) : (
                   <p>
                     You must be logged in as an administrator to edit the verse
@@ -130,7 +215,7 @@ const AuthButton = () => {
                   onPress={onClose}
                   className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
                 >
-                  Update Verse
+                  Add Verse
                 </Button>
                 <Button
                   onPress={onClose}
