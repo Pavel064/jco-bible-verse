@@ -12,6 +12,7 @@ import {
   Textarea,
   ModalFooter,
   useDisclosure,
+  CircularProgress,
 } from "@nextui-org/react";
 
 import { supabase } from "../utils/supabaseClient";
@@ -19,11 +20,13 @@ import { supabase } from "../utils/supabaseClient";
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
 
 const AuthButton = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
   const [user, setUser] = useState(null);
-  const [verse, setVerse] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignInFormValid, setIsSignInFormValid] = useState(false);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isEditVerseOpen,
@@ -55,6 +58,7 @@ const AuthButton = () => {
 
   const handleSubmitAddVerse = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
 
     if (!user || user.email !== ADMIN_EMAIL) {
       alert("You must be logged in as an administrator to update the verse");
@@ -76,6 +80,8 @@ const AuthButton = () => {
         verse_ka: "",
         reference_ka: "",
       });
+      setIsFormValid(false);
+      setIsLoading(false);
     }
   };
 
@@ -98,10 +104,44 @@ const AuthButton = () => {
   };
 
   const handleVerseChange = (lang, field, value) => {
-    setVerses((prev) => ({
-      ...prev,
+    const updatedVerses = {
+      ...verses,
       [`${field}_${lang}`]: value,
-    }));
+    };
+    setVerses(updatedVerses);
+
+    const isValid = Object.values(updatedVerses).every(
+      (val) => val.trim() !== ""
+    );
+    setIsFormValid(isValid);
+  };
+
+  const resetFormFields = () => {
+    setVerses({
+      verse_en: "",
+      reference_en: "",
+      verse_ru: "",
+      reference_ru: "",
+      verse_ka: "",
+      reference_ka: "",
+    });
+    setIsFormValid(false);
+  };
+
+  const checkSignInFormValidity = (email, password) => {
+    return email.trim() !== "" && password.trim() !== "";
+  };
+
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    setIsSignInFormValid(checkSignInFormValidity(newEmail, password));
+  };
+
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    setIsSignInFormValid(checkSignInFormValidity(email, newPassword));
   };
 
   return user ? (
@@ -125,7 +165,10 @@ const AuthButton = () => {
 
       <Modal
         isOpen={isEditVerseOpen}
-        onOpenChange={onEditVerseOpenChange}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) resetFormFields();
+          onEditVerseOpenChange(isOpen);
+        }}
         classNames={{
           body: "py-6",
           backdrop: "bg-[#292f46]/50 backdrop-opacity-40",
@@ -212,13 +255,31 @@ const AuthButton = () => {
                 <Button
                   color="primary"
                   type="submit"
-                  onPress={onClose}
-                  className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-white shadow-lg"
+                  isDisabled={!isFormValid}
+                  onPress={() => {
+                    onClose();
+                    resetFormFields();
+                  }}
+                  className="bg-gradient-to-tr from-pink-500 to-yellow-500 text-indigo-100 shadow-lg"
                 >
-                  Add Verse
+                  {isLoading ? (
+                    <CircularProgress
+                      classNames={{
+                        svg: "w-6",
+                        track: "stroke-indigo-100",
+                      }}
+                      color="default"
+                      aria-label="Loading..."
+                    />
+                  ) : (
+                    "Add Verse"
+                  )}
                 </Button>
                 <Button
-                  onPress={onClose}
+                  onPress={() => {
+                    onClose();
+                    resetFormFields();
+                  }}
                   variant="light"
                   className="text-orange-600 hover:!bg-orange-900/50"
                 >
@@ -261,8 +322,7 @@ const AuthButton = () => {
                     label="Email"
                     placeholder="Enter your email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    isRequired
+                    onChange={handleEmailChange}
                     classNames={{
                       inputWrapper: "bg-gray-300",
                     }}
@@ -273,8 +333,7 @@ const AuthButton = () => {
                     label="password"
                     placeholder="Enter your Password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    isRequired
+                    onChange={handlePasswordChange}
                     classNames={{
                       inputWrapper: "bg-gray-300",
                     }}
@@ -283,6 +342,7 @@ const AuthButton = () => {
               </ModalBody>
               <ModalFooter>
                 <Button
+                  isDisabled={!isSignInFormValid}
                   color="primary"
                   type="submit"
                   onPress={onClose}

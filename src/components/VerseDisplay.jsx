@@ -56,9 +56,10 @@ const VerseDisplay = () => {
           defaultSelectedKey="2"
           variant="light"
           classNames={{
-            base: "self-center mt-10",
-            tabList: "w-96",
-            panel: "text-center text-wrap min-h-52",
+            base: "self-center mt-5 md:mt-10",
+            tabList: "md:w-96",
+            panel:
+              "text-justify md:text-center text-wrap min-h-[450px] md:min-h-52",
             tab: "py-5",
             tabContent:
               "text-indigo-200 group-data-[selected=true]:text-indigo-100",
